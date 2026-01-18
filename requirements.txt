@@ -1,0 +1,14 @@
+torch>=2.0.0
+torchvision>=0.15.0
+numpy
+scipy
+matplotlib
+Pillow
+tqdm
+pyyaml
+requests
+ninja
+lpips
+facenet-pytorch
+opencv-python
+scikit-learn

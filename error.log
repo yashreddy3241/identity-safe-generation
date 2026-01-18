@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/Users/goturivenkatjyothireddy/.gemini/antigravity/playground/lunar-constellation/run_demo.py", line 150, in <module>
+    main()
+    ~~~~^^
+  File "/Users/goturivenkatjyothireddy/.gemini/antigravity/playground/lunar-constellation/run_demo.py", line 92, in main
+    img_C, _ = generator(w=w_latent)
+               ~~~~~~~~~^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/Users/goturivenkatjyothireddy/.gemini/antigravity/playground/lunar-constellation/src/generator.py", line 69, in forward
+    return self.real_G.synthesis(w, noise_mode=noise_mode), w
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "<string>", line 452, in forward
+  File "/Users/goturivenkatjyothireddy/.gemini/antigravity/playground/lunar-constellation/stylegan2-ada-pytorch/torch_utils/misc.py", line 93, in assert_shape
+    raise AssertionError(f'Wrong size for dimension {idx}: got {size}, expected {ref_size}')
+AssertionError: Wrong size for dimension 1: got 14, expected 18
