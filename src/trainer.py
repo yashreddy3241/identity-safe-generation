@@ -7,6 +7,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
 import yaml
 import argparse
+import pandas as pd
 from torch.utils.data import DataLoader
 from src.model import FreqDetectNet
 from src.dataset import DeepfakeDataset
@@ -22,7 +23,7 @@ class DualTaskLoss(nn.Module):
         super(DualTaskLoss, self).__init__()
         self.seg_weight = seg_weight
         self.cls_criterion = nn.BCEWithLogitsLoss()
-        self.seg_criterion = nn.BCEWithLogitsLoss() # Can add Dice Loss later
+        self.seg_criterion = nn.BCEWithLogitsLoss()
 
     def forward(self, cls_logits, mask_logits, cls_targets, mask_targets):
         cls_loss = self.cls_criterion(cls_logits, cls_targets.unsqueeze(1))
@@ -35,23 +36,7 @@ def train_one_epoch(model, loader, optimizer, scaler, criterion, device):
     loop = tqdm(loader, desc="Training")
     
     for batch in loop:
-        # Inputs
         rgb = batch['rgb'].to(device)
-        # Assuming model handles dct internally or fusion logic, 
-        # but our dataset returns separate tensors. 
-        # Wait, our model expected 'x' as (B,3,H,W) RGB and computed freq internally?
-        # Let's check src/model.py. 
-        # FreqStream.forward takes 'x'. FreqStream was implemented to take RGB in forward() but dataset returns 'dct'.
-        # We need to bridge this. 
-        # Option A: Model takes RGB only and computes SRM/DCT. 
-        # Option B: Model takes RGB and DCT.
-        # Check src/model.py: FreqStream forward takes x. It calls self.srm(x).
-        # So it expects RGB.
-        # This means we don't strictly *need* the DCT from dataset if utilizing SRMConv filters in model.
-        # BUT the plan mentioned DCT. 
-        # Let's stick to RGB input for now as SRM is implemented in model.
-        # The 'dct' from dataset can be an aux input if we want to change model later.
-        
         targets = batch['label'].to(device)
         masks = batch['mask'].to(device)
 
@@ -100,21 +85,14 @@ def main():
     args = parser.parse_args()
     
     cfg = load_config(args.config)
-    
-    # Setup
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # Check if data exists, else generate dummy?
-    # For now assume path exists effectively or user will provide
     train_ds = DeepfakeDataset(cfg['data']['train_dir'], mode='train')
     val_ds = DeepfakeDataset(cfg['data']['test_dir'], mode='val')
     
-    # If len is 0 (no data), create dummy dataset to allow code to run
     if len(train_ds) == 0:
-        print("Warning: No data found. Ensure data is at data/train/real etc.")
-        # We can implement a dummy filler or just exit. 
-        # Let's exit gracefully to prompt user.
-        # return
+        print("Warning: No data found.")
+        return
         
     train_loader = DataLoader(train_ds, batch_size=cfg['data']['batch_size'], shuffle=True,
                               num_workers=cfg['data']['num_workers'], pin_memory=True)
@@ -127,13 +105,28 @@ def main():
     criterion = DualTaskLoss()
     
     best_acc = 0.0
+    history = []
+    
+    log_dir = cfg['logging']['log_dir']
+    os.makedirs(log_dir, exist_ok=True)
     
     for epoch in range(cfg['training']['epochs']):
         print(f"Epoch {epoch+1}/{cfg['training']['epochs']}")
         train_loss = train_one_epoch(model, train_loader, optimizer, scaler, criterion, device)
         val_loss, val_acc, val_f1 = validate(model, val_loader, criterion, device)
         
-        print(f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f} | Val F1: {val_f1:.4f}")
+        print(f"Train Loss: {train_loss:.4f} | Val Acc: {val_acc:.4f} | Val F1: {val_f1:.4f}")
+        
+        history.append({
+            'epoch': epoch + 1,
+            'train_loss': train_loss,
+            'val_loss': val_loss,
+            'val_acc': val_acc,
+            'val_f1': val_f1
+        })
+        
+        # Save Log
+        pd.DataFrame(history).to_csv(os.path.join(log_dir, 'training_log.csv'), index=False)
         
         # Save Best
         if val_acc > best_acc:

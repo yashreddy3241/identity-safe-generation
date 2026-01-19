@@ -4,22 +4,15 @@ set -e
 # Setup Env
 export PYTHONPATH=$PYTHONPATH:.
 
-# 1. Check Data (If empty, generate dummy data for prototype run)
+# 1. Check Data
 if [ ! -d "data/train/real" ] || [ -z "$(ls -A data/train/real)" ]; then
-    echo "No training data found. Generating Dummy SOTA Prototype Data..."
-    python3 -c "
-import os, cv2, numpy as np
-for split in ['train', 'test']:
-    for cls in ['real', 'fake']:
-        os.makedirs(f'data/{split}/{cls}', exist_ok=True)
-        for i in range(10): # 10 dummy images per class
-            # Create a random image (256x256)
-            img = np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8)
-            # If fake, add some grid artifacts to simulate GAN
-            if cls == 'fake':
-                img[::4, ::4] = 255 
-            cv2.imwrite(f'data/{split}/{cls}/{i:04d}.jpg', img)
-"
+    echo "ERROR: No training data found in data/train/real!"
+    echo "Please place your StarGAN dataset images in:"
+    echo "  - data/train/real/"
+    echo "  - data/train/fake/"
+    echo "  - data/test/real/"
+    echo "  - data/test/fake/"
+    exit 1
 fi
 
 # 2. Run Training
